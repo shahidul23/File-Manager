@@ -88,21 +88,26 @@ class StoreFileRequest extends ParentIdBaseRequest
         }
         return null;
     }
-    public function buildFileTree(array $paths, array $files): array
+    public function buildFileTree(array $filePaths, array $files): array
     {
-        dd( $paths, $files);
-        // $tree = [];
-        // foreach ($paths as $index => $path) {
-        //     $parts = explode('/', $path);
-        //     $current = &$tree;
-        //     foreach ($parts as $part) {
-        //         if (!isset($current[$part])) {
-        //             $current[$part] = [];
-        //         }
-        //         $current = &$current[$part];
-        //     }
-        //     $current['_file'] = $files[$index];
-        // }
-        // return $tree;
+        $filePaths = array_slice($filePaths, 0, count($files));
+        $filePaths = array_filter($filePaths, fn($path) => !empty($path));
+        $tree = [];
+        foreach ($filePaths as $index => $path) {
+            $parts = explode('/', $path);
+            $current = &$tree;
+            foreach ($parts as $i => $part) {
+                if (!isset($current[$part])) {
+    
+                }
+                if ($i === count($parts) - 1) {
+                    $current[$part] = $files[$index];
+                }else {
+                    $current = &$current[$part];
+                }
+                
+            }
+        }
+        return $tree;
     }
 }

@@ -22,7 +22,7 @@ Route::controller(App\Http\Controllers\FileController::class)
     ->where('folder', '(.*)')
     ->name('myFiles');
     Route::post('/create-folder', 'createFolder')->name('createFolder');
-    Route::post('/upload-files', 'uploadFiles')->name('uploadFiles');
+    Route::post('/upload-files', 'uploadFiles')->name('upload.store');
 
 });
 

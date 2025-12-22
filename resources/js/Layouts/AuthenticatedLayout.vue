@@ -1,10 +1,9 @@
 <template>
-   <div   @drop.prevent="handleDrop"
+   <div class="h-screen bg-gray-50 flex w-full gap-4">
+    <Navigation />
+    <main @drop.prevent="handleDrop"
           @dragover.prevent="handleDragOver"
           @dropleave.prevent="handleDragLeave" 
-   class="h-screen bg-gray-50 flex w-full gap-4">
-    <Navigation />
-    <main 
          class="flex flex-col flex-1 px-4 overflow-hidden" :class="dragOver ? 'drogzone' : ''">
          <template v-if="dragOver" class="text-gray-500 text-center py-8 text-sm">
             Drop files here to upload
@@ -41,7 +40,7 @@ import { emitter, FILE_UPLOAD_START } from '@/event-bus.js';
 const page = usePage();
 const fileUploadFrom = useForm({
     files: [],
-    relative_path: [],
+    relative_paths: [],
     parent_id: null,
     
 });
@@ -61,9 +60,6 @@ function handleDrop(event) {
         return;
     }
     uploadFiles(files);
-
-
-    emitter.emit(FILE_UPLOAD_START, files);
 }
 
 function handleDragOver(event) {
@@ -81,9 +77,9 @@ function uploadFiles(files) {
     
     fileUploadFrom.parent_id = page.props.folder ? page.props.folder.id : null;
     fileUploadFrom.files = files;
-    fileUploadFrom.relative_path = [...files].map(file => file.webkitRelativePath);
-    fileUploadFrom.post(route('uploadFiles'), {
-        preserveScroll: true,
+    fileUploadFrom.relative_paths = [...files].map(file => file.webkitRelativePath );
+    fileUploadFrom.post(route('upload.store'), {
+        // preserveScroll: true,
         onSuccess: () => {
             fileUploadFrom.reset();
         },

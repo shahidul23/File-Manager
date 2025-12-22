@@ -62,31 +62,29 @@ class FileController extends Controller
     public function uploadFiles(StoreFileRequest $request)
     {
         $data = $request->validated();
-        dd($data);
-        // $parent = $request->parent;
+        $parent = $request->parent;
+        $user = $request->user();
+        $fileTree = $request->file_tree;
 
-        // if(!$parent){
-        //     $parent = $this->getRoot();
-        // }
+        if (!$parent) {
+            $parent = $this->getRoot();
+        }
+        if (!empty($fileTree)) {
+            $this->processFileTree($fileTree, $parent, $user);
+        }else {
+            foreach ($data['files'] as $uploadedFile) {
+                $path = $uploadedFile->store('/files/' . $user->id);
+                $file = new File();
+                $file->storage_path = $path;
+                $file->is_folder = false;
+                $file->name = $uploadedFile->getClientOriginalName(); 
+                $file->size = $uploadedFile->getSize();
+                $file->mime = $uploadedFile->getMimeType();
+                $parent->appendNode($file);
+            }
+        }
 
-        // foreach ($data['files'] as $uploadedFile) {
-        //     $file = new File();
-        //     $file->name = $uploadedFile->getClientOriginalName();
-        //     $file->mime = $uploadedFile->getClientMimeType();
-        //     $file->size = $uploadedFile->getSize();
-        //     $file->is_folder = 0;
-        //     $file->created_by = Auth::id();
-        //     // Store the file in the storage and get the path
-        //     $path = $uploadedFile->store('user_files/' . Auth::id());
-        //     $file->path = $path;
-
-        //     if ($parent) {
-        //         $parent->appendNode($file);
-        //     } else {
-        //         $file->saveAsRoot();
-        //     }
-        // }
-
+       
     }
 
     private function getRoot()
@@ -95,5 +93,27 @@ class FileController extends Controller
             ->whereIsRoot()
             ->where('created_by', Auth::id())
             ->firstOrFail();
+    }
+    private function processFileTree(array $fileTree, $parent, $user)
+    {
+        foreach ($fileTree as $name => $item) {
+            if (is_array($item)) {
+                $folder = new File();
+                $folder->name = $name;
+                $folder->is_folder = 1;
+                $parent->appendNode($folder);
+                $this->processFileTree($item, $folder, $user);
+            } else {
+                $uploadedFile = $item;
+                $file = new File();
+                $file->name = $uploadedFile->getClientOriginalName();
+                $file->is_folder = 0;
+                $file->size = $uploadedFile->getSize();
+                $file->mime = $uploadedFile->getMimeType();
+                $parent->appendNode($file);
+                $path = $uploadedFile->store('/files/' . $user->id);
+                $file->storage_path = $path;
+            }  
+        }  
     }
 }

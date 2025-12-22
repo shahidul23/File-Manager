@@ -57,7 +57,7 @@ import { Link, router } from '@inertiajs/vue3';
 const props = defineProps({
     files: Object,
     folder: Object,
-    ancestors: Array,
+    ancestors: Object,
 });
 
 function openFolder(file) {
