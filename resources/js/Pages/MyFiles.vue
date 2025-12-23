@@ -16,42 +16,53 @@
                 </li>
             </ol>   
         </nav>
-        <table class="min-w-full">
-            <thead class="bg-gray-100 border-b">
-                <tr>
-                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">
-                        Name
-                    </th>
-                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Woner
-                    </th>
-                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Last Modified
-                    </th>
-                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Size
-                    </th>
-                </tr>
-            </thead>
-            <tbody class="bg-white divide-y divide-gray-200">
-                <tr v-for="file in files.data" :key="file.id"
-                @dblclick="openFolder(file)"
-                 class="bg-white border-b transition duration-300 ease-in-out hover:bg-gray-100 cursor-pointer">
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">{{ file.name }}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">{{ file.owner }}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">{{ file.updated_at }}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">{{ file.size }}</td>
-                </tr>
-            </tbody>
-        </table>  
-        <div v-if="!files.data.length" class="py-8 text-center text-lg text-gray-400">
-            There are no files or folders in this directory.
+        <div class="overflow-auto bg-white shadow-md rounded-lg flex-1 max-h-[500px]" v-if="allFiles.data.length">
+            <table class="min-w-full">
+                <thead class="bg-gray-100 border-b">
+                    <tr>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">
+                            Name
+                        </th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Woner
+                        </th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Last Modified
+                        </th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Size
+                        </th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    <tr v-for="file in allFiles.data" :key="file.id"
+                    @dblclick="openFolder(file)"
+                    class="bg-white border-b transition duration-300 ease-in-out hover:bg-gray-100 cursor-pointer">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium flex items-center">
+                            <FileIcon :file="file" />
+                            {{ file.name }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">{{ file.owner }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">{{ file.updated_at }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">{{ file.size }}</td>
+                    </tr>
+                </tbody>
+            </table>  
+        
+            <div v-if="!allFiles.data.length" class="py-8 text-center text-lg text-gray-400">
+                There are no files or folders in this directory.
+            </div>
+            <div ref="loadMoreIntersect"></div>
         </div>
+
     </AuthenticatedLayout>
 </template>
 <script setup>
+import FileIcon from '@/Components/app/FileIcon.vue';
+import { httpGet } from '@/Helper/http-helper';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Link, router } from '@inertiajs/vue3';
+import { ref, onMounted, onUpdated } from 'vue';
 
 
 const props = defineProps({
@@ -60,12 +71,39 @@ const props = defineProps({
     ancestors: Object,
 });
 
+const loadMoreIntersect = ref(null);
+
+
+const allFiles = ref({
+    data: props.files.data,
+    next: props.files.links.next,
+});
+console.log(allFiles.value);
+    
+
 function openFolder(file) {
     if (!file.is_folder) {
         return;
     }
     router.visit(route('myFiles', { folder: file.path }));
 }
+function loadMore(){
+    if(!allFiles.value.next){
+        return;
+    }
+    httpGet(allFiles.value.next).then(response => {
+        allFiles.value.data = [...allFiles.value.data, ...response.data];
+        allFiles.value.next = response.links.next;
+    });
+}
+onMounted(() => {
+    const observer = new IntersectionObserver((entries) => entries.forEach(entry => entry.isIntersecting &&  loadMore()), {
+        rootMargin: '-250px 0px 0px 0px'
+    });
+    if (loadMoreIntersect.value) {
+        observer.observe(loadMoreIntersect.value);
+    } 
+ });
 
 </script>
 <style scoped>  
