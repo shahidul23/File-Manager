@@ -14,12 +14,18 @@
                         </Link>
                     </div>
                 </li>
-            </ol>   
+            </ol> 
+            <div>
+                <DeleteFileButton :delete-all="allSeleceted" :deleted-ids="selectedIds" @delete="onDelete"></DeleteFileButton>
+            </div>  
         </nav>
         <div class="overflow-auto bg-white shadow-md rounded-lg flex-1 max-h-[500px]" v-if="allFiles.data.length">
             <table class="min-w-full">
                 <thead class="bg-gray-100 border-b">
                     <tr>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-900 w-[30px] max-w-[30px] pr-0">
+                            <Checkbox v-model:checked="allSeleceted" @change="onSelecteAllFiles"/>
+                        </th>
                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">
                             Name
                         </th>
@@ -36,8 +42,13 @@
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
                     <tr v-for="file in allFiles.data" :key="file.id"
+                    @click="$event => toggleFileSelect(file)"
                     @dblclick="openFolder(file)"
-                    class="bg-white border-b transition duration-300 ease-in-out hover:bg-gray-100 cursor-pointer">
+                    class="bg-white border-b transition duration-300 ease-in-out hover:bg-blue-100 cursor-pointer"
+                    :class="(selectedFiles[file.id] || allSeleceted) ? 'bg-blue-50' : 'bg-white'">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium w-[30px] max-w-[30px] pr-0">
+                            <Checkbox @change="$event => onSelectCkeckboxChange(file)" :checked="selectedFiles[file.id] || allSeleceted" v-model="selectedFiles[file.id]"/>
+                        </td>   
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium flex items-center">
                             <FileIcon :file="file" />
                             {{ file.name }}
@@ -58,11 +69,13 @@
     </AuthenticatedLayout>
 </template>
 <script setup>
+import DeleteFileButton from '@/Components/app/DeleteFileButton.vue';
 import FileIcon from '@/Components/app/FileIcon.vue';
+import Checkbox from '@/Components/Checkbox.vue';
 import { httpGet } from '@/Helper/http-helper';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Link, router } from '@inertiajs/vue3';
-import { ref, onMounted, onUpdated } from 'vue';
+import { ref, onMounted, onUpdated, computed } from 'vue';
 
 
 const props = defineProps({
@@ -73,13 +86,20 @@ const props = defineProps({
 
 const loadMoreIntersect = ref(null);
 
+const allSeleceted = ref(false);
+const selectedFiles = ref({});
 
 const allFiles = ref({
     data: props.files.data,
     next: props.files.links.next,
 });
 console.log(allFiles.value);
-    
+
+//Computed
+const selectedIds = computed(() => Object.entries(selectedFiles.value)
+    .filter(a => a[1])
+    .map(a => a[0])
+);
 
 function openFolder(file) {
     if (!file.is_folder) {
@@ -95,6 +115,34 @@ function loadMore(){
         allFiles.value.data = [...allFiles.value.data, ...response.data];
         allFiles.value.next = response.links.next;
     });
+}
+function onSelecteAllFiles()
+{
+    allFiles.value.data.forEach(file => {
+        selectedFiles.value[file.id] = allSeleceted.value;
+    });
+}
+function toggleFileSelect(file) {
+    selectedFiles.value[file.id] = !selectedFiles.value[file.id];
+    onSelectCkeckboxChange(file);
+}
+function onSelectCkeckboxChange(file) {
+    if (!selectedFiles.value[file.id]) {
+        allSeleceted.value = false;
+    }else{
+        let checked = true;
+        allFiles.value.data.forEach(file => {
+            if (!selectedFiles.value[file.id]) {
+                checked = false;
+            }
+        });
+        allSeleceted.value = checked;
+    }
+}
+function onDelete(){
+    allSeleceted.value = false;
+    selectedFiles.value = {};
+
 }
 onMounted(() => {
     const observer = new IntersectionObserver((entries) => entries.forEach(entry => entry.isIntersecting &&  loadMore()), {

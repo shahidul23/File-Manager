@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Support\Str;
 use App\Traits\HasCreatorAndUpdator;
+use Illuminate\Support\Facades\Storage;
 
 class File extends Model
 {
@@ -59,6 +60,11 @@ class File extends Model
                 return;
             }
             $model->path = (!$model->parent->is_root() ? $model->parent->path . '/' : '') . Str::slug($model->name);
+        });
+        static::deleted(function (File $model) {
+            if (!$model->is_folder) {
+                Storage::delete($model->storage_path);
+            }
         });
     }
     

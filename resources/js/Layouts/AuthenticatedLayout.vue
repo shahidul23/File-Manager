@@ -83,7 +83,6 @@ function uploadFiles(files) {
     fileUploadFrom.files = files;
     fileUploadFrom.relative_paths = [...files].map(file => file.webkitRelativePath );
     fileUploadFrom.post(route('upload.store'), {
-        preserveScroll: true,
         onSuccess: () => {
             fileUploadFrom.reset();
         },

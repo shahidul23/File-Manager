@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Http\Requests\StoreFolderRequest;
 use App\Http\Requests\StoreFileRequest;
+use App\Http\Requests\DestroyFileRequest;
 use App\Models\File;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Resources\FileResource;
@@ -108,15 +109,36 @@ class FileController extends Controller
                 $this->processFileTree($item, $folder, $user);
             } else {
                 $uploadedFile = $item;
+                $path = $uploadedFile->store('/files/' . $user->id);
                 $file = new File();
+                $file->storage_path = $path;
                 $file->name = $uploadedFile->getClientOriginalName();
                 $file->is_folder = 0;
                 $file->size = $uploadedFile->getSize();
                 $file->mime = $uploadedFile->getMimeType();
                 $parent->appendNode($file);
-                $path = $uploadedFile->store('/files/' . $user->id);
-                $file->storage_path = $path;
             }  
         }  
+    }
+
+    public function destroy(DestroyFileRequest $request)
+    {
+        $data = $request->validated();
+        $parent = $request->parent;
+
+        if ($data['all']) {
+            $childred = $parent->children;
+            foreach ($childred as $child) {
+                $child->delete();
+            }
+        } else {
+            foreach ($data['ids'] ?? [] as $id) {
+                $file = File::find($id);
+                if($file){
+                    $file->delete();
+                } 
+            }
+        }
+        return to_route('myFiles', ['folder' => $parent->path]);   
     }
 }

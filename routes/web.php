@@ -23,6 +23,7 @@ Route::controller(App\Http\Controllers\FileController::class)
     ->name('myFiles');
     Route::post('/create-folder', 'createFolder')->name('createFolder');
     Route::post('/upload-files', 'uploadFiles')->name('upload.store');
+    Route::delete('/delete-file', 'destroy')->name('file.destroy');
 
 });
 
